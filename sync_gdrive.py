@@ -29,32 +29,9 @@ def check_rclone_installed():
         log_message("rclone is installed.")
     except FileNotFoundError:
         log_message("rclone is not installed. Please install rclone and try again.")
+        # TODO: Run script of installation for rclone
         sys.exit(1)
 
-# Check for rclone updates
-# def check_rclone_updates():
-    # log_message("Checking for rclone updates...")
-    # result = subprocess.run(["rclone", "version", "--check"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    # output = result.stdout.splitlines()
-    
-    # current_version = next(line for line in output if "current version" in line).split()[-1]
-    # latest_version = next(line for line in output if "latest version" in line).split()[-1]
-
-    # if current_version != latest_version:
-    #     log_message(f"A new version of rclone is available: {latest_version} (current version: {current_version})")
-    #     update_choice = input("Do you want to update rclone? (y/n): ").strip().lower()
-    #     if update_choice == "y":
-    #         log_message("Updating rclone...")
-    #         subprocess.run("curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip", shell=True, check=True)
-    #         subprocess.run("unzip rclone-current-linux-amd64.zip", shell=True, check=True)
-    #         subprocess.run("cd rclone-*-linux-amd64 && sudo cp rclone /usr/local/bin/ && cd .. && rm -rf rclone-*-linux-amd64*", shell=True, check=True)
-    #         result = subprocess.run(["rclone", "version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    #         new_version = next(line for line in result.stdout.splitlines() if "rclone v" in line).split()[1]
-    #         log_message(f"rclone updated to the latest version: {new_version}")
-    #     else:
-    #         log_message("Skipping rclone update.")
-    # else:
-    #     log_message("rclone is up to date.")
 
 # Check if local directories exist
 def check_local_directories():
@@ -69,17 +46,25 @@ def check_local_directories():
 
     log_message("All local directories exist.")
 
+def parse_sync_output():
+    # TODO: handle parsing of the output
+    pass
+
 # Sync local directories with their corresponding remote Google Drive directories
 def sync_directories():
     log_message("Starting sync with Google Drive...")
     for local_dir, remote_dir in zip(LOCAL_DIRS, REMOTE_DIRS):
         log_message(f"Syncing {remote_dir} to {local_dir}...")
-        subprocess.run(["rclone", "sync", "--interactive", local_dir, remote_dir, "-v"], check=True)
+        try:
+            sync_output=subprocess.run(["rclone", "sync", "--interactive", local_dir, remote_dir, "-v"], check=True, capture_output=True)
+        except:
+            log_message("Sync Failed")
+            log_message(sync_output.stdout.decode('utf-8'))
     log_message("Sync completed successfully.")
     print("Sync completed successfully. Check sync_gdrive.log for details.")
 
 if __name__ == "__main__":
     check_rclone_installed()
-    # check_rclone_updates()
+    # check_rclone_updates() # TODO
     check_local_directories()
     sync_directories()
