@@ -203,7 +203,9 @@ integration test, because there is no safe way to run a mirroring sync in CI.
 
 ## 9. Build and run
 
-There is no build step. Install the declared dependencies, then invoke a script:
+There is no build step. Install the declared dependencies, then invoke a script. This section is
+the summary; `usage.md` has the same commands with captured output, the examples worth copying,
+and a troubleshooting table.
 
 ```bash
 python3 -m pip install -r requirements.txt
