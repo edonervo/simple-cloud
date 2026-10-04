@@ -1,0 +1,29 @@
+#!/bin/sh
+# secret-guard pre-commit hook.
+#
+# Committed at .githooks/pre-commit (not generated into .git/hooks) on purpose: a hook that
+# lives only in .git is invisible in review, is not shared by a clone, and is lost on the
+# next clone. Activate it once per clone with:  make install-hooks
+#
+# Fast, offline, standard library only. It refuses to commit if no interpreter is found — a
+# check that silently passes when it is broken is worse than no check, because it is trusted.
+
+set -u
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+py=""
+for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        py="$candidate"
+        break
+    fi
+done
+
+if [ -z "$py" ]; then
+    echo "secret-guard: no Python interpreter found; refusing to commit." >&2
+    echo "secret-guard: install Python 3, or bypass deliberately with: git commit --no-verify" >&2
+    exit 1
+fi
+
+exec "$py" "$root/scripts/secret_guard.py" --root "$root" check --scope staged --scope boundaries
