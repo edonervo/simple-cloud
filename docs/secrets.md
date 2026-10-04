@@ -16,21 +16,29 @@ Three categories, and they fail differently.
 |---|---|---|
 | `TWILIO_AUTH_TOKEN` (+ `TWILIO_ACCOUNT_SID`) | `.env` (ignored, not tracked) | Someone else sends SMS on the owner's Twilio account and spends their balance. Rotatable, but only after noticing. |
 | `credentials.json` / `token.json` | working directory (gitignored) | The Gmail OAuth client and a refresh token. A refresh token grants access to the mailbox until revoked — not fixed by rotating a password. |
-| Two email addresses | hardcoded in `messaging/gmail/send_email.py:56-57` | Personal data in the repository, publicly readable forever, and *not rotatable*. |
+| Two email addresses | were hardcoded in `messaging/gmail/send_email.py:55-56` | Personal data, *not rotatable*, and **still in the git history** — see below. |
 
 The Twilio token is the one value the owner can rotate cheaply and the one most likely to be
 pasted somewhere it should not be — it is read from the environment in
 `messaging/twilio/send_test_sms.py`, which means it already exists as a string on the
 machine that runs it. The Gmail token is the more damaging of the two if it leaks, because a
-mailbox is not something one can reset. The addresses are the only *current* exposure: they
-are committed, real-looking, and not secrets — but they are PII that a public repository
-publishes permanently.
+mailbox is not something one can reset.
+
+**The addresses were the only *committed* exposure, and moving them out did not undo it.**
+They are no longer literals in the script: `GMAIL_SENDER` and `GMAIL_RECIPIENT` are read from
+the environment, `.env` is gitignored, and `.env.example` holds the names with blank values.
+What that fixes is the *trend* — no new commit carries them. What it cannot fix is that every
+commit up to and including `fe64faa` still does, and a clone receives the history. A push
+publishes them retroactively even if the tip looks clean. Whether the history is worth
+rewriting depends on whether this repository is public or will be, which only the owner can
+say (`project_scope.md` §8).
 
 **Findings from the first full scan of this repository** (§4 records the scopes):
 
-- **No secret value exists in the git history.** Nine files have ever been added
-  (`architecture.md` §2), none of them a credential, and no blob in any object — reachable
-  or orphaned — matched a rule.
+- **No secret value exists in the git history.** Every file ever added is accounted for in
+  `architecture.md` §2, none of them a credential, and no blob in any object — reachable
+  or orphaned — matched a rule. This covers credentials only: the guard does not look for PII,
+  so the two addresses were found by reading the code, not by the tool (§8).
 - **The `.gitignore` was under-specified.** It protected `.env`, `credentials.json` and
   `token.json`, but not `.env.*` (so `.env.local`, a common local override, was
   unprotected), not `*.pem` / `*.key`, not service-account JSON, not local SQLite files, and
@@ -178,9 +186,10 @@ Stated so the guard is not trusted past its evidence.
   GitHub's own **secret scanning** and **push protection** are the complementary control and
   must be enabled in the repository settings (see the audit's manual steps).
 - **A secret in a commit message, an issue, or a PR body.**
-- **PII that is not a credential** — including the two email addresses in `send_email.py`.
-  The guard looks for credentials, not for personal data. Those addresses are a `project_scope.md`
-  §8 open question, not something this tool will flag.
+- **PII that is not a credential** — including the two email addresses that were literals in
+  `send_email.py`. The guard looks for credentials, not for personal data, and it has no rule
+  that would have caught them. Phase 4 moved them into the environment, but they remain in the
+  history, and no tool here rewrites history. That is a `project_scope.md` §8 open question.
 - **Not a substitute for rotation.** A guard reduces the odds. It does not make a leaked key
   safe again.
 
