@@ -106,8 +106,11 @@ in the owner's rclone config, which lives outside the repo.
 
 ### Python dependencies
 
-Declared in `requirements.txt`. Versions are **not pinned** — see the note at the top of that
-file; pin them with `pip freeze` on the machine that runs the scripts.
+Declared and **pinned** in `requirements.txt`, to the newest release of each package whose
+metadata still declares support for Python 3.9 (the floor in `ruff.toml`). Pinning the newest
+release overall would not install on that floor — the current `google-*` and `python-dotenv`
+releases all require Python ≥ 3.10. The set was verified with `pip install --dry-run`, which
+resolves it and its transitive tree; it has **not** been executed against the scripts.
 
 | Package | Imported by |
 |---|---|
@@ -216,9 +219,9 @@ Its intent — surfacing rclone's output — is partly served now by the failure
 rclone's `stderr`. Summarising a *successful* run is a feature, not a cleanup, and is not
 built.
 
-**Still open:**
-
-- No version pins in `requirements.txt` (§5).
+**Still open:** no lock file for transitive dependencies (§5), and no integration test that
+runs a real mirroring sync — there is no safe way to do that in CI, so the suite stays a
+characterization net over logic rather than an end-to-end test.
 
 **Pending / not verifiable from here:**
 
