@@ -59,9 +59,6 @@ def check_local_directories():
 
     log_message("All local directories exist.")
 
-def parse_sync_output():
-    # TODO: handle parsing of the output
-    pass
 
 # Sync local directories with their corresponding remote Google Drive directories
 def sync_directories():

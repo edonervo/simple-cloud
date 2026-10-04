@@ -211,11 +211,14 @@ depending on the working directory.
   unvalidated variables. Sending now happens only under `__main__`, after the four required
   variables are checked.
 
+**Also removed:** `parse_sync_output()` was an empty, unreferenced stub carrying a `TODO`.
+Its intent — surfacing rclone's output — is partly served now by the failure path, which logs
+rclone's `stderr`. Summarising a *successful* run is a feature, not a cleanup, and is not
+built.
+
 **Still open:**
 
-- `parse_sync_output()` is an empty stub with a `TODO` — left as the owner's note, not removed.
 - No version pins in `requirements.txt` (§5).
-- No `ruff` configuration file, so `make lint` uses ruff's defaults.
 
 **Pending / not verifiable from here:**
 
