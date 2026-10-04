@@ -423,6 +423,10 @@ REQUIRED_IGNORE_PATTERNS = [
     "credentials.json",
     "token.json",
     "*.sqlite3",
+    # cloudsync's state directory (run records, saved plans, rclone logs, the lock). It is
+    # generated, it contains absolute paths and argv, and an rclone error string inside it can
+    # carry a credential fragment — so it is held to the same rule as a credential file.
+    "state/",
 ]
 REQUIRED_IGNORE_HINTS = [
     ("service account json", re.compile(r"(service[-_]?account|serviceAccount)", re.IGNORECASE)),

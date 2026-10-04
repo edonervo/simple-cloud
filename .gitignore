@@ -187,3 +187,10 @@ client_secret*.json
 *.sqlite3
 *.sqlite3-journal
 sync_gdrive.log
+
+# cloudsync's state: run records, saved plans, rclone logs and the lock. It holds file paths,
+# argv, and possibly a credential fragment inside an rclone error string, so it stays out of the
+# repository the same way the credentials do -- this rule is mirrored in the guard's
+# REQUIRED_IGNORE_PATTERNS, so deleting it fails the boundary scan rather than silently exposing
+# the directory.
+state/
