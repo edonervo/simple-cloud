@@ -30,7 +30,7 @@ def log_message(message):
 # Check if rclone is installed
 def check_rclone_installed():
     try:
-        subprocess.run(["rclone", "version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["rclone", "version"], check=True, capture_output=True)
     except FileNotFoundError:
         log_message("rclone is not installed. Please install rclone and try again.")
         # TODO: Run script of installation for rclone
@@ -45,11 +45,16 @@ def check_rclone_installed():
 def check_local_directories():
     for directory in LOCAL_DIRS:
         if not os.path.isdir(directory):
-            log_message(f"Directory {directory} does not exist. Please create the directory and try again.")
+            log_message(
+                f"Directory {directory} does not exist. Please create the directory and try again."
+            )
             sys.exit(1)
 
     if len(LOCAL_DIRS) != len(REMOTE_DIRS):
-        log_message("The number of local directories does not match the number of remote directories. Please ensure they match and try again.")
+        log_message(
+            "The number of local directories does not match the number of remote "
+            "directories. Please ensure they match and try again."
+        )
         sys.exit(1)
 
     log_message("All local directories exist.")
@@ -71,7 +76,9 @@ def sync_directories():
             )
         except subprocess.CalledProcessError as error:
             failures.append(remote_dir)
-            log_message(f"Sync failed for {remote_dir}: rclone exited with status {error.returncode}")
+            log_message(
+                f"Sync failed for {remote_dir}: rclone exited with status {error.returncode}"
+            )
             if error.stderr:
                 log_message(error.stderr.decode("utf-8", "replace").strip())
         except OSError as error:

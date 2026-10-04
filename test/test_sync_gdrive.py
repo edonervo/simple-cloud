@@ -84,7 +84,8 @@ class SyncInvocationTests(unittest.TestCase):
 
     def test_each_call_is_an_interactive_sync_of_local_to_remote(self):
         calls, _ = self._run(self._success)
-        for call, (local, remote) in zip(calls, zip(sync_gdrive.LOCAL_DIRS, sync_gdrive.REMOTE_DIRS)):
+        pairs = zip(sync_gdrive.LOCAL_DIRS, sync_gdrive.REMOTE_DIRS)
+        for call, (local, remote) in zip(calls, pairs):
             self.assertEqual(call[:3], ["rclone", "sync", "--interactive"])
             self.assertEqual(call[3], local)
             self.assertEqual(call[4], remote)

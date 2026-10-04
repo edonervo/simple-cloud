@@ -1,0 +1,20 @@
+# Ruff configuration — linting for this repository.
+#
+# Run with: make lint
+#
+# target-version is a conservative floor, recorded here because the repository does not
+# otherwise state a minimum Python version. Every construct in use works on 3.9; raise this
+# if the scripts are known to run on something newer.
+
+target-version = "py39"
+line-length = 100
+
+[lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes — undefined names, unused imports
+    "W",  # pycodestyle warnings
+    "I",  # import sorting
+    "UP", # pyupgrade — modernise syntax for the target version
+    "B",  # flake8-bugbear — likely bugs
+]

@@ -97,7 +97,9 @@ PATTERNS = [
     ("anthropic-key", re.compile(r"\bsk-ant-[0-9A-Za-z_\-]{20,}\b")),
     ("sendgrid-key", re.compile(r"\bSG\.[0-9A-Za-z_\-]{22}\.[0-9A-Za-z_\-]{43}\b")),
     ("npm-token", re.compile(r"\bnpm_[0-9A-Za-z]{36}\b")),
-    ("json-web-token", re.compile(r"\beyJ[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{10,}\b")),
+    ("json-web-token", re.compile(
+        r"\beyJ[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{10,}\b"
+    )),
     ("password-in-url", re.compile(r"://[^/\s:@]{1,64}:[^/\s:@]{3,64}@")),
 ]
 
@@ -166,7 +168,7 @@ def load_allowlist(root):
     path = os.path.join(root, ALLOWLIST_FILE)
     if not os.path.isfile(path):
         return entries
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for raw in fh:
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -199,7 +201,8 @@ def scan_text(text, location_prefix, allowlist, configured):
         for label, value in configured:
             if value and value in line and not _allowed(value, allowlist):
                 findings.append(Finding(
-                    SEVERITY_BLOCK, loc, "configured-secret", label, _redact(value, show_prefix=False)
+                    SEVERITY_BLOCK, loc, "configured-secret", label,
+                    _redact(value, show_prefix=False),
                 ))
 
         # Layer 2 — provider-shaped patterns.
@@ -246,7 +249,7 @@ def load_configured_values(root):
     if not os.path.isfile(path):
         return configured
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        with open(path, encoding="utf-8", errors="replace") as fh:
             for raw in fh:
                 line = raw.strip()
                 if not line or line.startswith("#") or "=" not in line:
@@ -268,7 +271,7 @@ def load_configured_values(root):
 def _git(root, *args, check=True):
     return subprocess.run(
         ["git", "-C", root, *args],
-        check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=check, capture_output=True,
     )
 
 
@@ -353,7 +356,10 @@ def _blob_map(root):
         if len(parts) == 2:
             path_of.setdefault(sha, parts[1])
 
-    check = _git(root, "cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype)")
+    check = _git(
+        root, "cat-file", "--batch-all-objects",
+        "--batch-check=%(objectname) %(objecttype)",
+    )
     blobs = []
     for line in check.stdout.decode("utf-8", "replace").splitlines():
         parts = line.split()
@@ -367,7 +373,7 @@ def _read_blobs(root, shas):
         return {}
     proc = subprocess.run(
         ["git", "-C", root, "cat-file", "--batch"],
-        input="\n".join(shas).encode(), check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        input="\n".join(shas).encode(), check=False, capture_output=True,
     )
     data = proc.stdout
     out = {}
@@ -429,7 +435,7 @@ def scan_boundaries(root):
     gitignore = os.path.join(root, ".gitignore")
     text = ""
     if os.path.isfile(gitignore):
-        with open(gitignore, "r", encoding="utf-8", errors="replace") as fh:
+        with open(gitignore, encoding="utf-8", errors="replace") as fh:
             text = fh.read()
     lines = {ln.strip() for ln in text.splitlines()}
 
@@ -481,7 +487,7 @@ def scan_boundaries(root):
 def _check_env_example_blank(root):
     findings = []
     path = os.path.join(root, ENV_EXAMPLE)
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for lineno, raw in enumerate(fh, start=1):
             line = raw.strip()
             if not line or line.startswith("#") or "=" not in line:
@@ -532,7 +538,8 @@ def run_check(root, scopes, allowlist, configured):
             elif scope == "boundaries":
                 findings.extend(scan_boundaries(root))
         except subprocess.CalledProcessError as exc:  # pragma: no cover - defensive
-            raise RuntimeError(f"git failed during '{scope}' scan: {exc.stderr.decode(errors='replace')}")
+            detail = exc.stderr.decode(errors="replace")
+            raise RuntimeError(f"git failed during '{scope}' scan: {detail}") from exc
     return findings
 
 
