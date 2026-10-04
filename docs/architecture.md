@@ -104,15 +104,18 @@ The `edo-remote` **provider is not verifiable from this repository.** The sync s
 lines say "Google Drive", and the remote name is `edo-remote:`; the actual backend is defined
 in the owner's rclone config, which lives outside the repo.
 
-### Python dependencies (undeclared)
+### Python dependencies
+
+Declared in `requirements.txt`. Versions are **not pinned** — see the note at the top of that
+file; pin them with `pip freeze` on the machine that runs the scripts.
 
 | Package | Imported by |
 |---|---|
 | `google-api-python-client` | `send_email.py` (`googleapiclient.*`) |
 | `google-auth-oauthlib` | `send_email.py` (`google_auth_oauthlib.flow`) |
 | `google-auth` / `google-auth-httplib2` | `send_email.py` (`google.auth.transport.requests`) |
-| `twilio` | `send_test_sms.py` |
-| `python-dotenv` | `send_test_sms.py` |
+| `twilio` | `send_test_sms.py` (imported lazily, inside `main()`) |
+| `python-dotenv` | `send_test_sms.py` (optional — its absence is not an error) |
 
 `sync_gdrive.py` uses the standard library only. The Bash script additionally needs `rclone`,
 and its updater path needs `curl` and `unzip`.
@@ -147,18 +150,28 @@ risk. A `--dry-run` first run is the usual mitigation and is not built in.
 
 ## 8. Testing
 
-**There is no test suite.** `test/` holds one scratch script that runs `ls -l` and prints it,
-with the real body commented out. No runner, no assertions, no fixtures. Any change to these
-scripts is currently unverified by construction; this is the single biggest obstacle to
-refactoring, and the Phase 4 improvements add a minimal `unittest` suite as a safety net.
+A `unittest` suite (standard library — no test dependency) covers the secret guard, the sync
+pairing and invocation logic, and the Twilio script's configuration handling. `test/test_cron.py`
+remains a scratch script and contains no tests.
+
+```bash
+make test     # python3 -m unittest discover -s test -t .
+make lint     # ruff, if installed
+```
+
+The suite is a **characterization** net: it pins the behaviour the Phase 4 refactors had to
+preserve (one `rclone sync` per pair, the argument order, the exit status) rather than testing
+these scripts against a live remote. There is still no integration test, because there is no
+safe way to run a mirroring sync in CI.
 
 ## 9. Build and run
 
-There is no build step and no installer. To run any script, install its dependencies
-manually and invoke the file:
+There is no build step. Install the declared dependencies, then invoke a script:
 
 ```bash
-# sync (Python)
+python3 -m pip install -r requirements.txt
+
+# sync (Python) — writes sync_gdrive.log next to the script
 python3 sync_gdrive.py
 
 # sync (Bash — also offers an rclone self-update)
@@ -169,8 +182,10 @@ python3 messaging/gmail/send_email.py
 python3 messaging/twilio/send_test_sms.py
 ```
 
-Dependencies are not declared; §5 lists what each script imports. `cron` entries are not
-stored in the repository, so the intended schedule is **TBD** (`project_scope.md` §8).
+`cron` entries are not stored in the repository, so the intended schedule is **TBD**
+(`project_scope.md` §8). Because `sync_gdrive.py` now resolves its log path relative to the
+script and returns a non-zero status on failure, a `cron` job can act on the result without
+depending on the working directory.
 
 ## 10. Verified vs. pending
 
@@ -181,13 +196,26 @@ stored in the repository, so the intended schedule is **TBD** (`project_scope.md
 - The dependency list in §5 is derived from the actual `import` statements.
 - The git history contains **nine files ever added**, all listed in §2, and **no secret value**
   (`secrets.md` §1, confirmed by the guard's history scan).
-- **Known defects in `sync_gdrive.py`**, present in the current tree:
-  - `sync_output` is assigned *inside* the `try` (`sync_gdrive.py:59`); if `subprocess.run`
-    raises before returning, the `except` body reads an unbound name and raises `NameError`,
-    masking the original failure.
-  - The `except` is bare (`sync_gdrive.py:60`), so it also swallows `KeyboardInterrupt`.
-  - On failure the script still logs and prints "Sync completed successfully." and exits `0`.
-  - `parse_sync_output()` is an empty stub (`sync_gdrive.py:49-51`).
+
+**Fixed in Phase 4** — defects that were present in the audited tree:
+
+- `sync_output` was assigned *inside* the `try`; if `subprocess.run` raised before returning,
+  the `except` body read an unbound name and raised `NameError`, masking the original failure.
+  Removed; the exception object is used instead.
+- The `except` was bare, so it also swallowed `KeyboardInterrupt`. Now it catches
+  `subprocess.CalledProcessError` and `OSError` only.
+- On failure the script still logged and printed "Sync completed successfully." and exited
+  `0`, so `cron` could not tell a failed sync from a good one. It now reports failures and
+  returns a non-zero status.
+- `messaging/twilio/send_test_sms.py` sent an SMS **on import** and built a Twilio client from
+  unvalidated variables. Sending now happens only under `__main__`, after the four required
+  variables are checked.
+
+**Still open:**
+
+- `parse_sync_output()` is an empty stub with a `TODO` — left as the owner's note, not removed.
+- No version pins in `requirements.txt` (§5).
+- No `ruff` configuration file, so `make lint` uses ruff's defaults.
 
 **Pending / not verifiable from here:**
 

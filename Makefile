@@ -22,4 +22,4 @@ test:
 	$(PYTHON) -m unittest discover -s test -t . -v
 
 lint:
-	@command -v ruff >/dev/null 2>&1 && ruff check . || echo "ruff not installed; skipping"
+	@if command -v ruff >/dev/null 2>&1; then ruff check .; else echo "ruff not installed; skipping"; fi

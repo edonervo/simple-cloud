@@ -1,0 +1,24 @@
+# Runtime dependencies for the scripts in this repository.
+#
+# These are declared here for the first time — nothing recorded them before, so a fresh
+# machine could not reproduce the environment from the repository alone.
+#
+# Versions are deliberately NOT pinned. None of these packages were installed in the
+# environment this file was written in, so no version could be verified; guessing at pins
+# would be worse than saying so. Pin them from the machine that actually runs the scripts:
+#
+#     python3 -m pip install -r requirements.txt
+#     python3 -m pip freeze > requirements.lock.txt
+
+# messaging/gmail/send_email.py
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
+
+# messaging/twilio/send_test_sms.py
+twilio
+python-dotenv
+
+# sync_gdrive.py needs the standard library only — no entry required.
+# The test suite (test/) uses unittest from the standard library — no entry required.

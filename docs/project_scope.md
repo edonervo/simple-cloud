@@ -50,8 +50,8 @@ is marked **TBD**.
 | Multi-user or shared operation | Paths are `$HOME`-relative and the credentials are one owner's. |
 | Bidirectional sync | `rclone sync` is a one-way mirror by design (`architecture.md` §6). The scripts pass the local directory as the source and the remote as the destination. |
 | Automated notification triggers | The messaging scripts send a fixed test message; nothing calls them on an event. Wiring alerting to sync success/failure is **TBD**. |
-| Tests | No test framework, no assertions, no CI. `test/test_cron.py` is a scratch script, not a test (`architecture.md` §8). |
-| Dependency declaration | No `requirements.txt`, `pyproject.toml`, or `setup.py` — imports are undeclared. |
+| CI beyond the secret scan | The only workflow is the secret-guard check. There is no build, test, or lint job. `test/test_cron.py` is a scratch script, not a test (`architecture.md` §8). |
+| Dependency pinning | Dependencies are declared in `requirements.txt`, but no version is pinned (§5 of `architecture.md`). No lock file. |
 | Secrets management | Twilio credentials come from environment variables (via `python-dotenv`); Gmail credentials come from two files in the working directory. Neither is documented outside the code. |
 
 ## 5. Locked decisions
@@ -87,10 +87,10 @@ owner's rclone config; see §8.
 | Risk | Why it matters | Mitigated today? |
 |---|---|---|
 | **`rclone sync` deletes at the destination.** | `sync` makes the destination match the source. Any file on the remote that is not present locally is **removed from the remote**. A local directory that is empty by mistake therefore empties its cloud counterpart. | Partially — `--interactive` is passed, which gives the owner a chance to intervene. There is no dry-run default and no backup. |
-| **A failure is reported as success.** | `sync_gdrive.py` catches every exception, logs a failure, then unconditionally logs and prints "Sync completed successfully." The exit status is `0`. A `cron` job therefore cannot tell a failed sync from a good one. | No — see `architecture.md` §10 and the Phase 4 improvements. |
+| **A failure is reported as success.** | `sync_gdrive.py` used to catch every exception, log a failure, then unconditionally print "Sync completed successfully." and exit `0`, so a `cron` job could not tell a failed sync from a good one. | Yes — fixed: failures are reported and the exit status is non-zero (`architecture.md` §10). |
 | **Credentials live next to the code.** | `credentials.json` and `token.json` are resolved relative to the *working directory*, not the script, so running from a different directory either fails or reads a different file. They are gitignored but not otherwise protected. | Partially — gitignore rules exist; see `secrets.md`. |
-| **Undeclared dependencies.** | Nothing records which packages are required, so a fresh machine cannot reproduce the environment from the repository alone. | No |
-| **No tests.** | Refactoring any of this has no safety net. | No |
+| **Undeclared dependencies.** | Nothing recorded which packages are required, so a fresh machine could not reproduce the environment from the repository alone. | Partially — `requirements.txt` now declares them, but versions are not pinned. |
+| **No tests.** | Refactoring any of this has no safety net. | Partially — a standard-library `unittest` suite now covers the guard and the sync logic (`architecture.md` §8). No integration test exists. |
 
 ## 8. Required inputs from owner
 
